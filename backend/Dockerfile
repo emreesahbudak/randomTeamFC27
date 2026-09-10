@@ -8,6 +8,9 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY backend/.mvn/ .mvn/
 COPY backend/mvnw backend/pom.xml ./
+# git on Windows doesn't reliably preserve the executable bit, so mvnw can land here
+# without it regardless of what's committed — set it explicitly rather than relying on that.
+RUN chmod +x mvnw
 RUN ./mvnw -q dependency:go-offline
 COPY backend/src/ src/
 RUN ./mvnw -q package -DskipTests
