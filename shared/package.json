@@ -1,0 +1,27 @@
+{
+  "name": "@fc27/shared",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared TypeScript API client (generated) and business logic for FC27 web & mobile",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "export:api-spec": "node scripts/export-openapi-spec.mjs",
+    "generate:api": "openapi-generator-cli generate -i ./openapi-spec.json -g typescript-fetch -o ./src/generated --additional-properties=supportsES6=true,typescriptThreePlus=true",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run generate:api",
+    "build": "tsc",
+    "pretest": "npm run generate:api",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.13.4",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "zustand": "^5.0.15"
+  }
+}

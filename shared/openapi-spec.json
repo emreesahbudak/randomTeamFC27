@@ -1,0 +1,1590 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FC27 Random Team & League Manager API",
+    "description": "Backend for the FC27 random team draw and friend-league tracker",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "League Types",
+      "description": "Team category lookup (e.g. \"Premier League\") — prevents typo-duplicated categories"
+    },
+    {
+      "name": "Matches",
+      "description": "Recorded match results within a league — a row only ever exists once a final score is registered. Owner only."
+    },
+    {
+      "name": "Auth",
+      "description": "Google / Email OTP / SMS OTP login, refresh-token rotation, logout"
+    },
+    {
+      "name": "Leagues",
+      "description": "A friend group's league — container for players and recorded matches. Requires authentication (no guest access); every operation is scoped to leagues the caller owns."
+    },
+    {
+      "name": "Seasons",
+      "description": "Past (closed) seasons of a league — frozen standings/matches from before each \"reset league\". Owner only."
+    },
+    {
+      "name": "Standings",
+      "description": "League table and stat badges — always computed live from recorded matches, never stored. Owner only."
+    },
+    {
+      "name": "Teams",
+      "description": "Team pool used by the wheel, managed via full CRUD by admins"
+    },
+    {
+      "name": "Players",
+      "description": "A league's roster — a display name only, optionally linked to a registered user. Owner only."
+    }
+  ],
+  "paths": {
+    "/api/teams/{id}": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get a single team by id — public",
+        "operationId": "getTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Replace every field of a team — ADMIN only",
+        "operationId": "replaceTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Deactivate a team (soft delete — preserves match history) — ADMIN only",
+        "operationId": "deactivateTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Update only the given fields of a team (null = unchanged) — ADMIN only",
+        "operationId": "patchTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamPatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "List teams, optionally filtered by star level(s) and/or league type — public, used by the wheel including for guests. Only active teams unless includeInactive=true (admin management view).",
+        "operationId": "listTeams",
+        "parameters": [
+          {
+            "name": "stars",
+            "in": "query",
+            "description": "Comma-separated star levels, e.g. 2,3,4",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          {
+            "name": "leagueTypeId",
+            "in": "query",
+            "description": "Id from GET /api/league-types",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "description": "Include deactivated teams too — for the admin management view",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Create a team — ADMIN only",
+        "operationId": "createTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues": {
+      "get": {
+        "tags": [
+          "Leagues"
+        ],
+        "summary": "List leagues owned by the current user — requires auth",
+        "operationId": "listMyLeagues",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeagueResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Leagues"
+        ],
+        "summary": "Create a league owned by the current user — requires auth",
+        "operationId": "createLeague",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/players": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "List the league's roster — owner only. Only active players unless includeInactive=true",
+        "operationId": "listPlayers",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Add a player to the league's roster — owner only. 400 if the display name is already used in this league",
+        "operationId": "addPlayer",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/matches": {
+      "get": {
+        "tags": [
+          "Matches"
+        ],
+        "summary": "List the league's recorded matches, most recent first — owner only",
+        "operationId": "listMatches",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Matches"
+        ],
+        "summary": "Register a final score between two of the league's players (the wheel's draw) — owner only",
+        "operationId": "recordMatch",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{id}/reset": {
+      "post": {
+        "tags": [
+          "Leagues"
+        ],
+        "summary": "Close the league's current season and open a new one — current standings/matches go back to zero, but the closed season's scores/standings stay browsable under GET /api/leagues/{id}/seasons (\"Geçmiş Ligler\"); the league and its player roster are kept — owner only",
+        "operationId": "resetLeague",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/league-types": {
+      "get": {
+        "tags": [
+          "League Types"
+        ],
+        "summary": "List all league types, alphabetically — public, used to populate the team form's dropdown",
+        "operationId": "listLeagueTypes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeagueTypeResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "League Types"
+        ],
+        "summary": "Create a new league type — ADMIN only. 400 if the name already exists (case-insensitive)",
+        "operationId": "createLeagueType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueTypeCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueTypeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Rotate a refresh token (body or cookie) for a new access+refresh pair — public",
+        "operationId": "refresh",
+        "parameters": [
+          {
+            "name": "refresh_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/otp/sms/verify": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verify the texted code and sign in (or register) — public",
+        "operationId": "verifySmsOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsOtpVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/otp/sms/send": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Send a 6-digit SMS login code — public, rate-limited",
+        "operationId": "sendSmsOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsOtpSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/otp/email/verify": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verify the emailed code and sign in (or register) — public",
+        "operationId": "verifyEmailOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailOtpVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/otp/email/send": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Send a 6-digit email login code — public, rate-limited",
+        "operationId": "sendEmailOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailOtpSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Revoke the caller's refresh token and clear the cookie — requires a valid access token",
+        "operationId": "logout",
+        "parameters": [
+          {
+            "name": "refresh_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign in (or register) with a Google ID token — public",
+        "operationId": "loginWithGoogle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/stats": {
+      "get": {
+        "tags": [
+          "Standings"
+        ],
+        "summary": "Golden Boot (most goals), Best Defense (fewest conceded) and head-to-head records between every pair of players who've met — owner only",
+        "operationId": "getLeagueStats",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/standings": {
+      "get": {
+        "tags": [
+          "Standings"
+        ],
+        "summary": "Full league table (P/W/D/L/GF/GA/GD/Pts per player), sorted by points then goal difference then goals for — owner only",
+        "operationId": "getStandings",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StandingRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/seasons": {
+      "get": {
+        "tags": [
+          "Seasons"
+        ],
+        "summary": "List the league's past (closed) seasons, most recently closed first — owner only",
+        "operationId": "listPastSeasons",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeasonResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/seasons/{seasonId}/stats": {
+      "get": {
+        "tags": [
+          "Seasons"
+        ],
+        "summary": "Golden Boot / Best Defense / head-to-head for one past season — owner only",
+        "operationId": "getPastSeasonStats",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "seasonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/seasons/{seasonId}/standings": {
+      "get": {
+        "tags": [
+          "Seasons"
+        ],
+        "summary": "Standings for one past season, frozen at the point it was closed — owner only",
+        "operationId": "getPastSeasonStandings",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "seasonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StandingRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/seasons/{seasonId}/matches": {
+      "get": {
+        "tags": [
+          "Seasons"
+        ],
+        "summary": "Match history for one past season — owner only",
+        "operationId": "getPastSeasonMatches",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "seasonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leagues/{leagueId}/players/{playerId}": {
+      "delete": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Remove a player from the roster (soft — past matches keep their record) — owner only",
+        "operationId": "removePlayer",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TeamCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "[A-Za-z0-9]{1,5}"
+          },
+          "crestUrl": {
+            "type": "string"
+          },
+          "colorHex": {
+            "type": "string",
+            "pattern": "#[0-9A-Fa-f]{6}"
+          },
+          "starLevel": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 5,
+            "minimum": 2
+          },
+          "leagueTypeId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "leagueTypeId"
+        ]
+      },
+      "TeamResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "crestUrl": {
+            "type": "string"
+          },
+          "colorHex": {
+            "type": "string"
+          },
+          "starLevel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "leagueTypeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "leagueTypeName": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LeagueCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          }
+        }
+      },
+      "LeagueResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PlayerCreateRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PlayerResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "leagueId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MatchCreateRequest": {
+        "type": "object",
+        "properties": {
+          "player1Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "player2Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team1Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team2Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "score1": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "score2": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "player1Id",
+          "player2Id",
+          "score1",
+          "score2",
+          "team1Id",
+          "team2Id"
+        ]
+      },
+      "MatchResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "leagueId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "player1Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "player1Name": {
+            "type": "string"
+          },
+          "player2Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "player2Name": {
+            "type": "string"
+          },
+          "team1Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team1Name": {
+            "type": "string"
+          },
+          "team2Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team2Name": {
+            "type": "string"
+          },
+          "score1": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "score2": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LeagueTypeCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          }
+        }
+      },
+      "LeagueTypeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummaryDto"
+          }
+        }
+      },
+      "UserSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ]
+          }
+        }
+      },
+      "SmsOtpVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\+?[0-9]{7,15}"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\d{6}"
+          },
+          "rememberMe": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SmsOtpSendRequest": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\+?[0-9]{7,15}"
+          }
+        }
+      },
+      "EmailOtpVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\d{6}"
+          },
+          "rememberMe": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EmailOtpSendRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "GoogleLoginRequest": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rememberMe": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TeamPatchRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          },
+          "code": {
+            "type": "string",
+            "pattern": "[A-Za-z0-9]{1,5}"
+          },
+          "crestUrl": {
+            "type": "string"
+          },
+          "colorHex": {
+            "type": "string",
+            "pattern": "#[0-9A-Fa-f]{6}"
+          },
+          "starLevel": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 5,
+            "minimum": 2
+          },
+          "leagueTypeId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "HeadToHeadRow": {
+        "type": "object",
+        "properties": {
+          "player1Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "player1Name": {
+            "type": "string"
+          },
+          "player2Id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "player2Name": {
+            "type": "string"
+          },
+          "player1Wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "player2Wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draws": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LeagueStatsResponse": {
+        "type": "object",
+        "properties": {
+          "topScorer": {
+            "$ref": "#/components/schemas/StatLeader"
+          },
+          "bestDefense": {
+            "$ref": "#/components/schemas/StatLeader"
+          },
+          "headToHead": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeadToHeadRow"
+            }
+          }
+        }
+      },
+      "StatLeader": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "StandingRow": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "won": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "drawn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lost": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "goalsFor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "goalsAgainst": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "goalDifference": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SeasonResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "name": "bearerAuth",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

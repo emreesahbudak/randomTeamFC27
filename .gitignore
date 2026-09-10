@@ -1,0 +1,60 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Node / web / mobile / shared ###
+node_modules/
+dist/
+.expo/
+.expo-shared/
+coverage/
+*.log
+logs/
+.env
+.env.local
+.env.*.local
+
+# Generated OpenAPI TS client — regenerated via `npm run generate:api` (or `npm test`'s
+# pretest) from the checked-in shared/openapi-spec.json. That spec file IS tracked.
+shared/src/generated/
+
+# openapi-generator-cli writes its version-pin config to whatever directory it's invoked
+# from — shared/openapitools.json (pinned, tracked) is canonical; ignore a stray root copy.
+/openapitools.json
+
+### Backend local H2 fallback (h2local profile) ###
+backend/.data/
+
+### OS ###
+.DS_Store
+Thumbs.db

@@ -1,0 +1,23 @@
+{
+  "name": "fc27-random-team-league-manager",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FC27 Random Team & League Manager monorepo (web, mobile, shared) — backend is a separate Maven project in backend/",
+  "workspaces": [
+    "web",
+    "mobile",
+    "shared"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "dev:mobile": "npm run start --workspace mobile",
+    "export:api-spec": "npm run export:api-spec --workspace shared",
+    "generate:api": "npm run generate:api --workspace shared",
+    "build:shared": "npm run build --workspace shared",
+    "test:shared": "npm test --workspace shared",
+    "test:web": "npm test --workspace web"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "folders": [
+    { "name": "root", "path": "." },
+    { "name": "backend", "path": "backend" },
+    { "name": "web", "path": "web" },
+    { "name": "mobile", "path": "mobile" },
+    { "name": "shared", "path": "shared" }
+  ],
+  "settings": {
+    "java.configuration.updateBuildConfiguration": "interactive"
+  }
+}

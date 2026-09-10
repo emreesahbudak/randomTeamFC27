@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: randomTeamFC27
+  datasource:
+    url: jdbc:h2:mem:fc27test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  test:
+    database:
+      replace: none
+
+app:
+  jwt:
+    secret: test-only-secret-key-not-for-any-real-use-minimum-32-bytes
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
+  otp:
+    code-ttl-minutes: 5
+    rate-limit:
+      max-requests: 3
+      window-minutes: 10
+  google:
+    client-id: test-google-client-id
+  cors:
+    allowed-origins: http://localhost:5173
+  cookie:
+    secure: false
+
+logging:
+  level:
+    root: WARN
+    randomTeamFC27: DEBUG

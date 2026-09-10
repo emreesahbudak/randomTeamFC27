@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: randomTeamFC27
+  datasource:
+    # Port 5433, not Postgres' usual 5432 — matches both docker-compose.yml's mapping and
+    # this dev machine's native PostgreSQL 17 install (Docker Desktop was unreliable here,
+    # so local dev runs against that native instance instead; override via DB_PORT env var
+    # if yours differs, e.g. a Docker setup left on the standard 5432).
+    url: jdbc:postgresql://localhost:${DB_PORT:5433}/fc27
+    username: fc27
+    password: fc27_dev_pw
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  # Only matters when the "prod" profile activates SmtpOtpSender (see that class) — Gmail
+  # SMTP via an account App Password, not a real provider API, so it's fine to leave these
+  # unset for local/dev use (LoggingOtpSender is what's active then).
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_APP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  # Railway (and most PaaS hosts) inject a $PORT env var and require the app to bind to it —
+  # named "PORT", not "SERVER_PORT", so Spring's usual env-var relaxed binding won't pick it
+  # up on its own; has to be referenced explicitly here.
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-key-change-me-before-any-real-deployment-32b+}
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
+  otp:
+    code-ttl-minutes: 5
+    rate-limit:
+      max-requests: 3
+      window-minutes: 10
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8081}
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+
+logging:
+  level:
+    root: INFO
+    randomTeamFC27: DEBUG
+    org.springframework.web: INFO
+
+---
+# Fallback local datasource when Docker/Postgres isn't available (e.g. Docker Desktop
+# misbehaving on this machine) — a persistent (file, not in-memory) H2 instance in
+# PostgreSQL-compat mode, same config style already proven identical-behavior in tests
+# (see backend/src/test/resources/application.yaml). NOT for anything beyond solo local
+# dev: activate with `-Dspring-boot.run.profiles=dev,h2local`.
+spring:
+  config:
+    activate:
+      on-profile: h2local
+  datasource:
+    url: jdbc:h2:file:./.data/fc27local;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver

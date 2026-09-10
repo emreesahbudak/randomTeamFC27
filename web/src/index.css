@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+/* Manual dark mode: driven by data-theme="dark" on <html>, not prefers-color-scheme,
+   so the header's theme toggle always wins regardless of OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-display: "Rajdhani", system-ui, sans-serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg: #eef2f0;
+  --color-stage-bg: #e3e9e5;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f5f2;
+  --color-surface-3: #e5ebe6;
+  --color-border: #d7ded9;
+  --color-border-soft: #e2e8e4;
+  --color-text: #0f1713;
+  --color-text-dim: #54625c;
+  --color-text-faint: #8a978f;
+  --color-accent: #0f9a82;
+  --color-accent-dim: #0c7d69;
+  --color-accent-ink: #ffffff;
+  --color-gold: #a5701a;
+  --color-win: #1f9d4a;
+  --color-draw: #b9760a;
+  --color-loss: #c23b2e;
+  --color-chrome-bg: #dbe2dd;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0a0f0d;
+  --color-stage-bg: #060a09;
+  --color-surface: #121a17;
+  --color-surface-2: #1b2521;
+  --color-surface-3: #233029;
+  --color-border: #2a3733;
+  --color-border-soft: #1e2925;
+  --color-text: #eaf2ed;
+  --color-text-dim: #8fa79c;
+  --color-text-faint: #5e7268;
+  --color-accent: #2fe6c6;
+  --color-accent-dim: #1ca98f;
+  --color-accent-ink: #04211c;
+  --color-gold: #e8b34d;
+  --color-win: #5bc26b;
+  --color-draw: #d9a441;
+  --color-loss: #e2584b;
+  --color-chrome-bg: #0e1512;
+}
+
+html {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+h1,
+h2,
+h3,
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.font-mono-nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Team crest — a hexagon-ish badge, matching the prototype's CSS-drawn shape (no image assets). */
+.crest {
+  clip-path: polygon(50% 0%, 100% 18%, 100% 62%, 50% 100%, 0% 62%, 0% 18%);
+}
