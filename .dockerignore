@@ -1,0 +1,19 @@
+# Root-level — the Docker build context for Railway's backend build is the whole repo
+# (see backend/Dockerfile's note on why). Keeps the upload small and fast; the Dockerfile
+# only ever COPYs specific backend/ paths anyway, but a lean context still uploads faster.
+node_modules/
+**/node_modules/
+backend/target/
+backend/.data/
+backend/logs/
+*.log
+web/dist/
+web/node_modules/
+mobile/node_modules/
+mobile/.expo/
+shared/node_modules/
+shared/dist/
+shared/src/generated/
+.git/
+.vscode/
+.idea/
