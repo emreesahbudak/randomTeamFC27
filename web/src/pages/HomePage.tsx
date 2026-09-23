@@ -425,42 +425,51 @@ export function HomePage() {
       </div>
 
       {pendingMatch && (
-        <form onSubmit={handleRegisterMatch} className="mt-5 rounded-2xl border border-border-soft bg-surface p-5 sm:p-6">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-accent">Maç Kaydı</span>
-          <h2 className="mb-4 text-base font-bold text-text">
-            {pendingMatch.player1Name} ({pendingMatch.team1.name}) vs {pendingMatch.player2Name} ({pendingMatch.team2.name})
-          </h2>
-          <div className="flex items-center justify-center gap-4">
-            <input
-              type="number"
-              min={0}
-              value={score1}
-              onChange={(e) => setScore1(e.target.value)}
-              className="w-16 rounded-lg border border-border bg-surface-2 px-3 py-2 text-center text-lg font-bold text-text"
-            />
-            <span className="text-text-faint">-</span>
-            <input
-              type="number"
-              min={0}
-              value={score2}
-              onChange={(e) => setScore2(e.target.value)}
-              className="w-16 rounded-lg border border-border bg-surface-2 px-3 py-2 text-center text-lg font-bold text-text"
-            />
+        <form
+          onSubmit={handleRegisterMatch}
+          className="mt-5 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-b from-surface to-bg shadow-xl shadow-accent/10"
+        >
+          <div className="border-b border-dashed border-border px-5 py-3.5 text-center sm:px-6">
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-accent">Maç Kaydı</span>
           </div>
-          {registerError && <p className="mt-3 text-center text-sm font-semibold text-loss">{registerError}</p>}
-          <div className="mt-4 flex items-center justify-center gap-2">
+
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-6 sm:gap-4 sm:px-8">
+            <div className="flex flex-col items-center gap-3">
+              <TeamCrest code={pendingMatch.team1.code} colorHex={pendingMatch.team1.colorHex} />
+              <div className="text-center">
+                <div className="text-sm font-bold text-text">{pendingMatch.player1Name}</div>
+                <div className="text-xs text-text-faint">{pendingMatch.team1.name}</div>
+              </div>
+              <ScoreStepper value={score1} onChange={setScore1} disabled={registering} />
+            </div>
+
+            <span className="font-display text-xs font-bold text-text-faint">VS</span>
+
+            <div className="flex flex-col items-center gap-3">
+              <TeamCrest code={pendingMatch.team2.code} colorHex={pendingMatch.team2.colorHex} />
+              <div className="text-center">
+                <div className="text-sm font-bold text-text">{pendingMatch.player2Name}</div>
+                <div className="text-xs text-text-faint">{pendingMatch.team2.name}</div>
+              </div>
+              <ScoreStepper value={score2} onChange={setScore2} disabled={registering} />
+            </div>
+          </div>
+
+          {registerError && <p className="px-6 pb-2 text-center text-sm font-semibold text-loss">{registerError}</p>}
+
+          <div className="flex items-center justify-center gap-2 border-t border-dashed border-border px-5 py-4 sm:px-6">
             <button
               type="button"
               onClick={handleDiscardMatch}
               disabled={registering}
-              className="rounded-full border border-loss px-5 py-2.5 text-sm font-bold text-loss disabled:opacity-50"
+              className="rounded-full border border-loss/60 px-5 py-2.5 text-sm font-bold text-loss disabled:opacity-50"
             >
               Eşleşmeyi Sil
             </button>
             <button
               type="submit"
               disabled={registering}
-              className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-accent-ink disabled:opacity-50"
+              className="rounded-full bg-gradient-to-br from-accent to-accent-dim px-6 py-2.5 text-sm font-extrabold text-accent-ink shadow-lg shadow-accent/30 disabled:opacity-50"
             >
               {registering ? "Kaydediliyor…" : "Maçı Kaydet"}
             </button>
@@ -493,6 +502,51 @@ export function HomePage() {
               : ""
         }
       />
+    </div>
+  );
+}
+
+function ScoreStepper({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
+  function bump(delta: number) {
+    onChange(String(Math.max(0, (Number(value) || 0) + delta)));
+  }
+
+  return (
+    <div className="flex items-center gap-1 rounded-full border border-border bg-surface-2 p-1">
+      <button
+        type="button"
+        onClick={() => bump(-1)}
+        disabled={disabled}
+        aria-label="Skoru azalt"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-text-dim hover:bg-surface-3 hover:text-text disabled:opacity-40"
+      >
+        −
+      </button>
+      <input
+        type="number"
+        min={0}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-11 bg-transparent text-center font-mono-nums text-2xl font-extrabold text-text outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+      <button
+        type="button"
+        onClick={() => bump(1)}
+        disabled={disabled}
+        aria-label="Skoru artır"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-text-dim hover:bg-surface-3 hover:text-text disabled:opacity-40"
+      >
+        +
+      </button>
     </div>
   );
 }
