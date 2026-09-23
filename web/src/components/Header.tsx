@@ -37,9 +37,16 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border-soft bg-bg/85 px-4 py-3 backdrop-blur sm:px-6">
-      <Link to="/" className="font-display text-lg font-bold text-text hover:text-accent">
-        FC27 Takım ve Lig Yöneticisi
-      </Link>
+      <div className="flex items-center gap-4 sm:gap-6">
+        <Link to="/" className="font-display text-lg font-bold text-text hover:text-accent">
+          FC27
+        </Link>
+        {!isGuest && (
+          <Link to="/league" className="text-sm font-bold text-text-dim hover:text-text">
+            Puan Durumu
+          </Link>
+        )}
+      </div>
 
       <div className="flex items-center gap-2.5">
         <button
@@ -89,13 +96,6 @@ export function Header() {
                     className="block rounded-lg px-3 py-2 text-left text-sm font-semibold text-text hover:bg-surface-2"
                   >
                     Profil ve Lig Ayarları
-                  </Link>
-                  <Link
-                    to="/league"
-                    onClick={() => setMenuOpen(false)}
-                    className="block rounded-lg px-3 py-2 text-left text-sm font-semibold text-text hover:bg-surface-2"
-                  >
-                    Puan Durumu
                   </Link>
                   {user?.role === "ADMIN" && (
                     <Link

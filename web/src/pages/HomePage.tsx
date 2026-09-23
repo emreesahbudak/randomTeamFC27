@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { teamsApi, leagueTypesApi, leaguesApi, playersApi, matchesApi, useAuthStore } from "../lib/auth";
 import { filterTeams, WheelError, logWarn, logInfo, ResponseError, type WheelTeam } from "@fc27/shared";
 import type { TeamResponse, LeagueTypeResponse, LeagueResponse, PlayerResponse } from "@fc27/shared";
 import { TeamCrest } from "../components/TeamCrest";
 
 const STAR_LEVELS = [2, 3, 4, 5];
-const SPIN_DURATION_MS = 900;
+const SPIN_DURATION_MS = 1300;
 const SPIN_TICK_MS = 90;
-// How long the drawn matchup stays on the wheel before it's swept into the "Maç Kaydı"
-// card and the wheel/selectors reset for the next pair — long enough to actually read it.
-const RESULT_HOLD_MS = 2500;
+// How long each player's drawn team "pops" forward and holds before settling back into
+// place — long enough to actually read it, baked into each reveal rather than one big
+// pause at the end (see handleSpin).
+const POP_HOLD_MS = 2000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -76,6 +77,8 @@ export function HomePage() {
   const [player1, setPlayer1] = useState<WheelTeam | null>(null);
   const [player2, setPlayer2] = useState<WheelTeam | null>(null);
   const [spinningPlayer, setSpinningPlayer] = useState<1 | 2 | null>(null);
+  // Which panel is currently "popped" forward showing its just-drawn team — see handleSpin.
+  const [poppedPlayer, setPoppedPlayer] = useState<1 | 2 | null>(null);
   const [spinError, setSpinError] = useState<string | null>(null);
   const spinToken = useRef(0);
 
@@ -201,17 +204,24 @@ export function HomePage() {
     await animateReveal(pool, setPlayer1, player1Team);
     if (spinToken.current !== token) return; // a newer spin started — abandon this one
 
+    // Pop Player 1's drawn team forward and hold so it's actually seen before moving on.
+    setSpinningPlayer(null);
+    setPoppedPlayer(1);
+    await sleep(POP_HOLD_MS);
+    if (spinToken.current !== token) return;
+    setPoppedPlayer(null);
+
     setSpinningPlayer(2);
     await animateReveal(pool, setPlayer2, player2Team);
     if (spinToken.current !== token) return;
 
     setSpinningPlayer(null);
+    setPoppedPlayer(2);
+    await sleep(POP_HOLD_MS);
+    if (spinToken.current !== token) return;
+    setPoppedPlayer(null);
 
     if (assignedPlayers) {
-      // Let players actually see who they were matched with before it's swept away.
-      await sleep(RESULT_HOLD_MS);
-      if (spinToken.current !== token) return; // a newer spin started during the hold — abandon this one
-
       setPendingMatch({
         player1Id: assignedPlayers.selectedPlayer1.id!,
         player1Name: assignedPlayers.selectedPlayer1.displayName!,
@@ -267,6 +277,9 @@ export function HomePage() {
   }
 
   const spinning = spinningPlayer !== null;
+  // Locks the player-select dropdowns for the whole draw sequence, including the pop/hold
+  // pause between the two reveals — not just while a wheel is actively ticking.
+  const selectionLocked = spinning || poppedPlayer !== null || pendingMatch !== null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -341,43 +354,32 @@ export function HomePage() {
           </label>
         </div>
 
-        {canAssignPlayers && (
-          <div className="mb-5 flex flex-wrap items-center gap-2.5 border-b border-dashed border-border pb-5">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-text-faint">Ligden oyuncu seç</span>
-            <select
-              value={selectedPlayer1Id}
-              onChange={(e) => setSelectedPlayer1Id(e.target.value ? Number(e.target.value) : "")}
-              className="rounded-full border border-border bg-surface-2 px-3.5 py-1.5 text-xs font-semibold text-text"
-            >
-              <option value="">Oyuncu 1…</option>
-              {leaguePlayers
-                .filter((p) => p.id !== selectedPlayer2Id)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName}
-                  </option>
-                ))}
-            </select>
-            <span className="text-xs text-text-faint">vs</span>
-            <select
-              value={selectedPlayer2Id}
-              onChange={(e) => setSelectedPlayer2Id(e.target.value ? Number(e.target.value) : "")}
-              className="rounded-full border border-border bg-surface-2 px-3.5 py-1.5 text-xs font-semibold text-text"
-            >
-              <option value="">Oyuncu 2…</option>
-              {leaguePlayers
-                .filter((p) => p.id !== selectedPlayer1Id)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName}
-                  </option>
-                ))}
-            </select>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-          <PlayerPanel label={selectedPlayer1?.displayName ?? "Oyuncu 1"} team={player1} spinning={spinningPlayer === 1} />
+          <PlayerPanel
+            label="Oyuncu 1"
+            team={player1}
+            spinning={spinningPlayer === 1}
+            popped={poppedPlayer === 1}
+            selectSlot={
+              canAssignPlayers && (
+                <select
+                  value={selectedPlayer1Id}
+                  disabled={selectionLocked}
+                  onChange={(e) => setSelectedPlayer1Id(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full max-w-[11rem] rounded-full border border-border bg-surface-2 px-3 py-1.5 text-center text-xs font-semibold text-text disabled:opacity-60"
+                >
+                  <option value="">Oyuncu 1…</option>
+                  {leaguePlayers
+                    .filter((p) => p.id !== selectedPlayer2Id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.displayName}
+                      </option>
+                    ))}
+                </select>
+              )
+            }
+          />
 
           <div className="flex flex-row items-center justify-center gap-3 sm:flex-col">
             <span className="font-display text-sm font-bold text-text-faint">VS</span>
@@ -392,7 +394,31 @@ export function HomePage() {
             </button>
           </div>
 
-          <PlayerPanel label={selectedPlayer2?.displayName ?? "Oyuncu 2"} team={player2} spinning={spinningPlayer === 2} />
+          <PlayerPanel
+            label="Oyuncu 2"
+            team={player2}
+            spinning={spinningPlayer === 2}
+            popped={poppedPlayer === 2}
+            selectSlot={
+              canAssignPlayers && (
+                <select
+                  value={selectedPlayer2Id}
+                  disabled={selectionLocked}
+                  onChange={(e) => setSelectedPlayer2Id(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full max-w-[11rem] rounded-full border border-border bg-surface-2 px-3 py-1.5 text-center text-xs font-semibold text-text disabled:opacity-60"
+                >
+                  <option value="">Oyuncu 2…</option>
+                  {leaguePlayers
+                    .filter((p) => p.id !== selectedPlayer1Id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.displayName}
+                      </option>
+                    ))}
+                </select>
+              )
+            }
+          />
         </div>
 
         {spinError && <p className="mt-4 text-center text-sm font-semibold text-loss">{spinError}</p>}
@@ -460,12 +486,30 @@ export function HomePage() {
   );
 }
 
-function PlayerPanel({ label, team, spinning }: { label: string; team: WheelTeam | null; spinning: boolean }) {
+function PlayerPanel({
+  label,
+  team,
+  spinning,
+  popped,
+  selectSlot,
+}: {
+  label: string;
+  team: WheelTeam | null;
+  spinning: boolean;
+  popped: boolean;
+  selectSlot: ReactNode;
+}) {
   return (
-    <div className="relative flex min-h-[190px] flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-surface-2 p-5 text-center">
-      <span className="absolute left-3.5 top-3 text-[10px] font-extrabold uppercase tracking-wide text-text-faint">
-        {label}
-      </span>
+    <div
+      className={`relative flex min-h-[190px] flex-col items-center justify-center gap-3 rounded-2xl border bg-surface-2 p-5 text-center transition-transform duration-300 ease-out ${
+        popped ? "z-10 scale-110 border-accent shadow-xl shadow-accent/30" : "border-border"
+      }`}
+    >
+      <div className="flex h-7 w-full items-center justify-center">
+        {selectSlot || (
+          <span className="text-[10px] font-extrabold uppercase tracking-wide text-text-faint">{label}</span>
+        )}
+      </div>
       <TeamCrest code={team?.code} colorHex={team?.colorHex} spinning={spinning} />
       <div>
         <div className="font-display text-base font-bold text-text">{team?.name ?? "—"}</div>
