@@ -35,6 +35,13 @@ build/
 ### Node / web / mobile / shared ###
 node_modules/
 dist/
+# shared/dist/ is the exception: web's and mobile's deploy builds (Vercel, EAS Build) clone
+# a fresh checkout with no local build step for the shared workspace, so @fc27/shared has
+# to resolve to something already committed rather than something generated on the fly —
+# see shared/src/generated/'s note below for why generating it there isn't practical either
+# (needs a JVM for openapi-generator-cli, which most JS-only build images don't have).
+!shared/dist/
+!shared/dist/**
 .expo/
 .expo-shared/
 coverage/
