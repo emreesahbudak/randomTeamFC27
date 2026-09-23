@@ -31,6 +31,12 @@ spring:
           auth: true
           starttls:
             enable: true
+          # Without explicit timeouts, JavaMailSender blocks indefinitely if the SMTP
+          # connection stalls (e.g. an outbound network hiccup) — that hung the OTP-send
+          # request (and the "Gönderiliyor..." button) forever with no error surfaced.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 server:
   # Railway (and most PaaS hosts) inject a $PORT env var and require the app to bind to it —
