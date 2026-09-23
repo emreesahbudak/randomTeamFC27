@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi, useAuthStore } from "../lib/auth";
+import { authApi, leaguesApi, useAuthStore } from "../lib/auth";
 import { logInfo, logWarn, ResponseError } from "@fc27/shared";
 
 type Tab = "guest" | "email";
@@ -64,7 +64,17 @@ export function LoginPage() {
         phone: response.user.phone,
         role: (response.user.role as "USER" | "ADMIN") ?? "USER",
       });
-      navigate("/");
+
+      // New/league-less users can't do anything useful on the wheel screen yet (no roster
+      // to draw for) — send them straight to where a league gets created instead of
+      // dropping them on a wheel they can't really use.
+      let hasLeague = false;
+      try {
+        hasLeague = (await leaguesApi.listMyLeagues()).length > 0;
+      } catch (err) {
+        logWarn("login.leagueCheckFailed", { error: String(err) });
+      }
+      navigate(hasLeague ? "/" : "/profile");
     } catch (err) {
       logWarn("login.otpVerifyFailed", { error: String(err) });
       setError(await extractErrorMessage(err));

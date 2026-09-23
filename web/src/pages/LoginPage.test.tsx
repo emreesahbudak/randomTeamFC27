@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "./LoginPage";
-import { authApi, useAuthStore } from "../lib/auth";
+import { authApi, leaguesApi, useAuthStore } from "../lib/auth";
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -19,6 +19,10 @@ vi.mock("../lib/auth", async (importOriginal) => {
       ...actual.authApi,
       sendEmailOtp: vi.fn(),
       verifyEmailOtp: vi.fn(),
+    },
+    leaguesApi: {
+      ...actual.leaguesApi,
+      listMyLeagues: vi.fn(),
     },
   };
 });
@@ -49,13 +53,14 @@ describe("LoginPage", () => {
     expect(authApi.sendEmailOtp).not.toHaveBeenCalled();
   });
 
-  it("sends an email code then verifies it and logs in", async () => {
+  it("sends an email code then verifies it and logs in, landing on home when a league exists", async () => {
     vi.mocked(authApi.sendEmailOtp).mockResolvedValue(undefined);
     vi.mocked(authApi.verifyEmailOtp).mockResolvedValue({
       accessToken: "access-123",
       refreshToken: "refresh-123",
       user: { id: 7, displayName: "Emre", email: "emre@example.com", role: "USER" },
     });
+    vi.mocked(leaguesApi.listMyLeagues).mockResolvedValue([{ id: 1, name: "Cuma Gecesi" }]);
 
     renderLogin();
 
@@ -75,7 +80,27 @@ describe("LoginPage", () => {
     });
     expect(useAuthStore.getState().user?.displayName).toBe("Emre");
     expect(useAuthStore.getState().isGuest).toBe(false);
-    expect(navigateMock).toHaveBeenCalledWith("/");
+    await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/"));
+  });
+
+  it("sends a league-less user to their profile to create one instead of the wheel", async () => {
+    vi.mocked(authApi.sendEmailOtp).mockResolvedValue(undefined);
+    vi.mocked(authApi.verifyEmailOtp).mockResolvedValue({
+      accessToken: "access-123",
+      refreshToken: "refresh-123",
+      user: { id: 7, displayName: "Emre", email: "emre@example.com", role: "USER" },
+    });
+    vi.mocked(leaguesApi.listMyLeagues).mockResolvedValue([]);
+
+    renderLogin();
+
+    await userEvent.type(screen.getByLabelText(/e-posta adresi/i), "emre@example.com");
+    await userEvent.click(screen.getByRole("button", { name: /6 haneli kod gönder/i }));
+    await screen.findByText(/kod gönderildi/i);
+    await userEvent.type(screen.getByLabelText(/kodu gir/i), "123456");
+    await userEvent.click(screen.getByRole("button", { name: /doğrula ve giriş yap/i }));
+
+    await vi.waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/profile"));
   });
 
   it("shows an error message when sending the code fails", async () => {

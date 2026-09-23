@@ -553,15 +553,17 @@ function TeamPopOverlay({ team, label }: { team: WheelTeam | null; label: string
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/70 backdrop-blur-sm">
       <div
-        className={`flex flex-col items-center gap-4 rounded-3xl border border-accent/40 bg-surface px-10 py-8 shadow-2xl shadow-accent/30 transition-all duration-300 ease-out ${
-          visible ? "scale-100 opacity-100" : "scale-50 opacity-0"
+        className={`flex flex-col items-center gap-5 rounded-3xl border border-accent/40 bg-surface px-14 py-11 shadow-2xl shadow-accent/30 transition-all duration-300 ease-out ${
+          visible ? "scale-125 opacity-100 sm:scale-150" : "scale-50 opacity-0"
         }`}
       >
-        <span className="text-xs font-bold uppercase tracking-wide text-text-faint">{label}</span>
-        <TeamCrest code={displayTeam.code} colorHex={displayTeam.colorHex} />
+        <span className="text-sm font-bold uppercase tracking-wide text-text-faint">{label}</span>
+        <div className="scale-125">
+          <TeamCrest code={displayTeam.code} colorHex={displayTeam.colorHex} />
+        </div>
         <div className="text-center">
-          <div className="font-display text-2xl font-bold text-text">{displayTeam.name}</div>
-          <div className="mt-1 text-sm text-gold">{"★".repeat(displayTeam.starLevel)}</div>
+          <div className="font-display text-3xl font-bold text-text">{displayTeam.name}</div>
+          <div className="mt-1.5 text-base text-gold">{"★".repeat(displayTeam.starLevel)}</div>
         </div>
       </div>
     </div>
