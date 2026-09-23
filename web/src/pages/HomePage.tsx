@@ -482,6 +482,17 @@ export function HomePage() {
           Giriş yapıp bir lig oluşturursan çektiğin maçları kaydedip puan durumu tutabilirsin.
         </p>
       )}
+
+      <TeamPopOverlay
+        team={poppedPlayer === 1 ? player1 : poppedPlayer === 2 ? player2 : null}
+        label={
+          poppedPlayer === 1
+            ? selectedPlayer1?.displayName ?? "Oyuncu 1"
+            : poppedPlayer === 2
+              ? selectedPlayer2?.displayName ?? "Oyuncu 2"
+              : ""
+        }
+      />
     </div>
   );
 }
@@ -501,8 +512,8 @@ function PlayerPanel({
 }) {
   return (
     <div
-      className={`relative flex min-h-[190px] flex-col items-center justify-center gap-3 rounded-2xl border bg-surface-2 p-5 text-center transition-transform duration-300 ease-out ${
-        popped ? "z-10 scale-110 border-accent shadow-xl shadow-accent/30" : "border-border"
+      className={`relative flex min-h-[190px] flex-col items-center justify-center gap-3 rounded-2xl border bg-surface-2 p-5 text-center transition-colors duration-300 ${
+        popped ? "border-accent shadow-lg shadow-accent/20" : "border-border"
       }`}
     >
       <div className="flex h-7 w-full items-center justify-center">
@@ -514,6 +525,44 @@ function PlayerPanel({
       <div>
         <div className="font-display text-base font-bold text-text">{team?.name ?? "—"}</div>
         {team && <div className="mt-1 text-xs text-gold">{"★".repeat(team.starLevel)}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** Full-screen centered reveal for a just-drawn team — grows in from the middle of the
+ *  screen, holds, then shrinks back out. `team` going from a value to null (rather than
+ *  unmounting the component) is what drives the shrink-out transition below. */
+function TeamPopOverlay({ team, label }: { team: WheelTeam | null; label: string }) {
+  const [displayTeam, setDisplayTeam] = useState<WheelTeam | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (team) {
+      setDisplayTeam(team);
+      const raf = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setVisible(false);
+    const timeout = window.setTimeout(() => setDisplayTeam(null), 300);
+    return () => window.clearTimeout(timeout);
+  }, [team]);
+
+  if (!displayTeam) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/70 backdrop-blur-sm">
+      <div
+        className={`flex flex-col items-center gap-4 rounded-3xl border border-accent/40 bg-surface px-10 py-8 shadow-2xl shadow-accent/30 transition-all duration-300 ease-out ${
+          visible ? "scale-100 opacity-100" : "scale-50 opacity-0"
+        }`}
+      >
+        <span className="text-xs font-bold uppercase tracking-wide text-text-faint">{label}</span>
+        <TeamCrest code={displayTeam.code} colorHex={displayTeam.colorHex} />
+        <div className="text-center">
+          <div className="font-display text-2xl font-bold text-text">{displayTeam.name}</div>
+          <div className="mt-1 text-sm text-gold">{"★".repeat(displayTeam.starLevel)}</div>
+        </div>
       </div>
     </div>
   );
